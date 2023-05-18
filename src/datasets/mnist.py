@@ -45,6 +45,7 @@ class MNIST_Dataset(TorchvisionDataset):
 
         self.test_set = MyMNIST(root=self.root, train=False, download=True,
                                 transform=transform, target_transform=target_transform)
+        print()
 
 
 class MyMNIST(MNIST):
