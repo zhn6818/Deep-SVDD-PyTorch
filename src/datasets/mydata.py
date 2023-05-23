@@ -12,17 +12,18 @@ import argparse
 from torch.utils.data import Subset
 from base.torchvision_dataset import TorchvisionDataset
 
+
 class mydata_Dataset(TorchvisionDataset):
-    
-    def __init__(self, root :str):
+
+    def __init__(self, root: str):
         self.n_classes = 2  # 0: normal, 1: outlier
-        root = root + '/train.txt'
-        
-        train_set = JFDetDataset(root, 32, 32)
+        train_txt = root + '/train.txt'
+        test_txt = root + '/test.txt'
+
+        train_set = JFDetDataset(train_txt, 32, 32)
         indices = [i for i in range(len(train_set))]
         self.train_set = Subset(train_set, indices)
-        self.test_set = JFDetDataset(root, 32, 32)
-    
+        self.test_set = JFDetDataset(test_txt, 32, 32)
 
 
 class JFDetDataset(data.Dataset):
