@@ -125,60 +125,15 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
         deep_SVDD.load_model(model_path=load_model, load_ae=True)
         logger.info('Loading model from %s.' % load_model)
 
-    logger.info('Pretraining: %s' % pretrain)
-    if pretrain:
-        # Log pretraining details
-        logger.info('Pretraining optimizer: %s' % cfg.settings['ae_optimizer_name'])
-        logger.info('Pretraining learning rate: %g' % cfg.settings['ae_lr'])
-        logger.info('Pretraining epochs: %d' % cfg.settings['ae_n_epochs'])
-        logger.info('Pretraining learning rate scheduler milestones: %s' % (cfg.settings['ae_lr_milestone'],))
-        logger.info('Pretraining batch size: %d' % cfg.settings['ae_batch_size'])
-        logger.info('Pretraining weight decay: %g' % cfg.settings['ae_weight_decay'])
-
-        # Pretrain model on dataset (via autoencoder)
-        deep_SVDD.pretrain(dataset,
-                           optimizer_name=cfg.settings['ae_optimizer_name'],
-                           lr=cfg.settings['ae_lr'],
-                           n_epochs=cfg.settings['ae_n_epochs'],
-                           lr_milestones=cfg.settings['ae_lr_milestone'],
-                           batch_size=cfg.settings['ae_batch_size'],
-                           weight_decay=cfg.settings['ae_weight_decay'],
-                           device=device,
-                           n_jobs_dataloader=n_jobs_dataloader)
-
-    # Log training details
-    logger.info('Training optimizer: %s' % cfg.settings['optimizer_name'])
-    logger.info('Training learning rate: %g' % cfg.settings['lr'])
-    logger.info('Training epochs: %d' % cfg.settings['n_epochs'])
-    logger.info('Training learning rate scheduler milestones: %s' % (cfg.settings['lr_milestone'],))
-    logger.info('Training batch size: %d' % cfg.settings['batch_size'])
-    logger.info('Training weight decay: %g' % cfg.settings['weight_decay'])
-
-    # Train model on dataset
-    deep_SVDD.train(dataset,
-                    optimizer_name=cfg.settings['optimizer_name'],
-                    lr=cfg.settings['lr'],
-                    n_epochs=cfg.settings['n_epochs'],
-                    lr_milestones=cfg.settings['lr_milestone'],
-                    batch_size=cfg.settings['batch_size'],
-                    weight_decay=cfg.settings['weight_decay'],
-                    device=device,
-                    n_jobs_dataloader=n_jobs_dataloader)
-
     # Test model
     deep_SVDD.test(dataset, device=device, n_jobs_dataloader=n_jobs_dataloader)
-
-    # Save results, model, and configuration
-    deep_SVDD.save_results(export_json=xp_path + '/results.json')
-    deep_SVDD.save_model(export_model=xp_path + '/model.tar')
-    cfg.save_config(export_json=xp_path + '/config.json')
 
     # Plot most anomalous and most normal (within-class) test samples
     indices, labels, scores = zip(*deep_SVDD.results['test_scores'])
     indices, labels, scores = np.array(indices), np.array(labels), np.array(scores)
     idx_sorted = indices[labels == 0][np.argsort(scores[labels == 0])]  # sorted from lowest to highest anomaly score
 
-    if dataset_name in ('mnist', 'cifar10'):
+    if dataset_name in ('mnist', 'cifar10', 'mydata'):
 
         if dataset_name == 'mnist':
             X_normals = dataset.test_set.test_data[idx_sorted[:32], ...].unsqueeze(1)
@@ -187,14 +142,17 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
         if dataset_name == 'cifar10':
             X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:32], ...], (0, 3, 1, 2)))
             X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-32:], ...], (0, 3, 1, 2)))
-        # if dataset_name == 'mydata':
-        #     X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:3], ...], (0, 3, 1, 2)))
-        #     X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-3:], ...], (0, 3, 1, 2)))
+        if dataset_name == 'mydata':
+            X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:3], ...], (0, 3, 1, 2)))
+            X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-3:], ...], (0, 3, 1, 2)))
 
         plot_images_grid(X_normals, export_img=xp_path + '/normals', title='Most normal examples', padding=2)
         plot_images_grid(X_outliers, export_img=xp_path + '/outliers', title='Most anomalous examples', padding=2)
 
-    
+    # Save results, model, and configuration
+    deep_SVDD.save_results(export_json=xp_path + '/results.json')
+    deep_SVDD.save_model(export_model=xp_path + '/model.tar')
+    cfg.save_config(export_json=xp_path + '/config.json')
 
 
 if __name__ == '__main__':
