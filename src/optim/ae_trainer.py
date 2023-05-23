@@ -108,12 +108,12 @@ class AETrainer(BaseTrainer):
 
         logger.info('Test set Loss: {:.8f}'.format(loss_epoch / n_batches))
 
-        _, labels, scores = zip(*idx_label_score)
-        labels = np.array(labels)
-        scores = np.array(scores)
+        # _, labels, scores = zip(*idx_label_score)
+        # labels = np.array(labels)
+        # scores = np.array(scores)
 
-        auc = roc_auc_score(labels, scores)
-        logger.info('Test set AUC: {:.2f}%'.format(100. * auc))
+        # auc = roc_auc_score(labels, scores)
+        # logger.info('Test set AUC: {:.2f}%'.format(100. * auc))
 
         test_time = time.time() - start_time
         logger.info('Autoencoder testing time: %.3f' % test_time)

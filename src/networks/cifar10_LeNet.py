@@ -68,15 +68,15 @@ class CIFAR10_LeNet_Autoencoder(BaseNet):
         nn.init.xavier_uniform_(self.deconv4.weight, gain=nn.init.calculate_gain('leaky_relu'))
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.pool(F.leaky_relu(self.bn2d1(x)))
-        x = self.conv2(x)
-        x = self.pool(F.leaky_relu(self.bn2d2(x)))
-        x = self.conv3(x)
-        x = self.pool(F.leaky_relu(self.bn2d3(x)))
-        x = x.view(x.size(0), -1)
-        x = self.bn1d(self.fc1(x))
-        x = x.view(x.size(0), int(self.rep_dim / (4 * 4)), 4, 4)
+        x = self.conv1(x)#11 32 32 32
+        x = self.pool(F.leaky_relu(self.bn2d1(x)))# 11 32 16 16
+        x = self.conv2(x)# 11 64 16 16
+        x = self.pool(F.leaky_relu(self.bn2d2(x)))# 11 64 8 8
+        x = self.conv3(x)#11 128 8 8
+        x = self.pool(F.leaky_relu(self.bn2d3(x)))# 11 128 4 4
+        x = x.view(x.size(0), -1)# 11 2048
+        x = self.bn1d(self.fc1(x)) #11 128
+        x = x.view(x.size(0), int(self.rep_dim / (4 * 4)), 4, 4)# 11 8 4 4
         x = F.leaky_relu(x)
         x = self.deconv1(x)
         x = F.interpolate(F.leaky_relu(self.bn2d4(x)), scale_factor=2)
