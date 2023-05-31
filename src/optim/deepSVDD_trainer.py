@@ -153,6 +153,23 @@ class DeepSVDDTrainer(BaseTrainer):
         # logger.info('Test set AUC: {:.2f}%'.format(100. * self.test_auc))
 
         logger.info('Finished testing.')
+    def testdir(self, img , net : BaseNet):
+        logger = logging.getLogger()
+        
+        net = net.to(self.device)
+        
+        logger.info('Starting testing.dir image..')
+        
+        net.eval()
+        
+        with torch.no_grad():
+            
+            inputs = inputs.to(self.device)
+            outputs = net(inputs)
+            dist = torch.sum((outputs - self.c) ** 2, dim=1)
+            scores = dist
+        return scores
+        
 
     def init_center_c(self, train_loader: DataLoader, net: BaseNet, eps=0.1):
         """Initialize hypersphere center c as the mean from an initial forward pass on the data."""
