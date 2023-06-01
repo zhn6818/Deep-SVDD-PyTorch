@@ -28,9 +28,11 @@ class DeepSVDD(object):
     def __init__(self, objective: str = 'one-class', nu: float = 0.1):
         """Inits DeepSVDD with one of the two objectives and hyperparameter nu."""
 
-        assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
+        assert objective in (
+            'one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
-        assert (0 < nu) & (nu <= 1), "For hyperparameter nu, it must hold: 0 < nu <= 1."
+        assert (0 < nu) & (
+            nu <= 1), "For hyperparameter nu, it must hold: 0 < nu <= 1."
         self.nu = nu
         self.R = 0.0  # hypersphere radius R
         self.c = None  # hypersphere center c
@@ -84,6 +86,15 @@ class DeepSVDD(object):
         self.results['test_auc'] = self.trainer.test_auc
         self.results['test_time'] = self.trainer.test_time
         self.results['test_scores'] = self.trainer.test_scores
+
+    def testimg(self, img, device: str = 'cuda', n_jobs_dataloader: int = 0):
+        """Tests the Deep SVDD model on the test data."""
+
+        if self.trainer is None:
+            self.trainer = DeepSVDDTrainer(self.objective, self.R, self.c, self.nu,
+                                           device=device, n_jobs_dataloader=n_jobs_dataloader)
+
+        return self.trainer.testimg(img, self.net)
 
     def pretrain(self, dataset: BaseADDataset, optimizer_name: str = 'adam', lr: float = 0.001, n_epochs: int = 100,
                  lr_milestones: tuple = (), batch_size: int = 128, weight_decay: float = 1e-6, device: str = 'cuda',

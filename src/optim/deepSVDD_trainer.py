@@ -19,16 +19,19 @@ class DeepSVDDTrainer(BaseTrainer):
         super().__init__(optimizer_name, lr, n_epochs, lr_milestones, batch_size, weight_decay, device,
                          n_jobs_dataloader)
 
-        assert objective in ('one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
+        assert objective in (
+            'one-class', 'soft-boundary'), "Objective must be either 'one-class' or 'soft-boundary'."
         self.objective = objective
 
         # Deep SVDD parameters
-        self.R = torch.tensor(R, device=self.device)  # radius R initialized with 0 by default.
+        # radius R initialized with 0 by default.
+        self.R = torch.tensor(R, device=self.device)
         self.c = torch.tensor(c, device=self.device) if c is not None else None
         self.nu = nu
 
         # Optimization parameters
-        self.warm_up_n_epochs = 10  # number of training epochs for soft-boundary Deep SVDD before radius R gets updated
+        # number of training epochs for soft-boundary Deep SVDD before radius R gets updated
+        self.warm_up_n_epochs = 10
 
         # Results
         self.train_time = None
@@ -43,14 +46,16 @@ class DeepSVDDTrainer(BaseTrainer):
         net = net.to(self.device)
 
         # Get train data loader
-        train_loader, _ = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
+        train_loader, _ = dataset.loaders(
+            batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
 
         # Set optimizer (Adam optimizer for now)
         optimizer = optim.Adam(net.parameters(), lr=self.lr, weight_decay=self.weight_decay,
                                amsgrad=self.optimizer_name == 'amsgrad')
 
         # Set learning rate scheduler
-        scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_milestones, gamma=0.1)
+        scheduler = optim.lr_scheduler.MultiStepLR(
+            optimizer, milestones=self.lr_milestones, gamma=0.1)
 
         # Initialize hypersphere center c (if c not loaded)
         if self.c is None:
@@ -67,7 +72,8 @@ class DeepSVDDTrainer(BaseTrainer):
 
             scheduler.step()
             if epoch in self.lr_milestones:
-                logger.info('  LR scheduler: new learning rate is %g' % float(scheduler.get_lr()[0]))
+                logger.info('  LR scheduler: new learning rate is %g' %
+                            float(scheduler.get_lr()[0]))
 
             loss_epoch = 0.0
             n_batches = 0
@@ -84,7 +90,9 @@ class DeepSVDDTrainer(BaseTrainer):
                 dist = torch.sum((outputs - self.c) ** 2, dim=1)
                 if self.objective == 'soft-boundary':
                     scores = dist - self.R ** 2
-                    loss = self.R ** 2 + (1 / self.nu) * torch.mean(torch.max(torch.zeros_like(scores), scores))
+                    loss = self.R ** 2 + \
+                        (1 / self.nu) * \
+                        torch.mean(torch.max(torch.zeros_like(scores), scores))
                 else:
                     loss = torch.mean(dist)
                 loss.backward()
@@ -92,7 +100,8 @@ class DeepSVDDTrainer(BaseTrainer):
 
                 # Update hypersphere radius R on mini-batch distances
                 if (self.objective == 'soft-boundary') and (epoch >= self.warm_up_n_epochs):
-                    self.R.data = torch.tensor(get_radius(dist, self.nu), device=self.device)
+                    self.R.data = torch.tensor(get_radius(
+                        dist, self.nu), device=self.device)
 
                 loss_epoch += loss.item()
                 n_batches += 1
@@ -116,7 +125,8 @@ class DeepSVDDTrainer(BaseTrainer):
         net = net.to(self.device)
 
         # Get test data loader
-        _, test_loader = dataset.loaders(batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
+        _, test_loader = dataset.loaders(
+            batch_size=self.batch_size, num_workers=self.n_jobs_dataloader)
 
         # Testing
         logger.info('Starting testing...')
@@ -153,23 +163,23 @@ class DeepSVDDTrainer(BaseTrainer):
         # logger.info('Test set AUC: {:.2f}%'.format(100. * self.test_auc))
 
         logger.info('Finished testing.')
-    def testdir(self, img , net : BaseNet):
+
+    def testimg(self, img, net: BaseNet):
         logger = logging.getLogger()
-        
+
         net = net.to(self.device)
-        
-        logger.info('Starting testing.dir image..')
-        
+
+        # logger.info('Starting testing.dir image..')
+
         net.eval()
-        
+
         with torch.no_grad():
-            
-            inputs = inputs.to(self.device)
-            outputs = net(inputs)
+
+            img = img.to(self.device)
+            outputs = net(img)
             dist = torch.sum((outputs - self.c) ** 2, dim=1)
             scores = dist
         return scores
-        
 
     def init_center_c(self, train_loader: DataLoader, net: BaseNet, eps=0.1):
         """Initialize hypersphere center c as the mean from an initial forward pass on the data."""
