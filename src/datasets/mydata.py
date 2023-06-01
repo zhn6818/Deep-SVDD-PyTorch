@@ -39,15 +39,15 @@ class JFDetDataset(data.Dataset):
         self.input_h = input_h
         self.input_w = input_w
 
-        self.data = []
-        for index, val in enumerate(self.img_list):
-            # print(index, " ", val)
-            img = cv2.imread(val.strip("\n"))
-            inputs = cv2.resize(
-                img, (self.input_w, self.input_h), interpolation=cv2.INTER_CUBIC)
-            self.data.append(inputs)
-        self.data = np.vstack(self.data).reshape(-1, size, size, 3)
-        # self.data = self.data.transpose((0, 2, 3, 1))
+        # self.data = []
+        # for index, val in enumerate(self.img_list):
+        #     # print(index, " ", val)
+        #     img = cv2.imread(val.strip("\n"))
+        #     inputs = cv2.resize(
+        #         img, (self.input_w, self.input_h), interpolation=cv2.INTER_CUBIC)
+        #     self.data.append(inputs)
+        # self.data = np.vstack(self.data).reshape(-1, size, size, 3)
+
         print("over")
 
     def __len__(self):

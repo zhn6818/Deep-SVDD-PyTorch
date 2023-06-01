@@ -50,7 +50,7 @@ from datasets.main import load_dataset
 @click.option('--ae_batch_size', type=int, default=128, help='Batch size for mini-batch autoencoder training.')
 @click.option('--ae_weight_decay', type=float, default=1e-6,
               help='Weight decay (L2 penalty) hyperparameter for autoencoder objective.')
-@click.option('--n_jobs_dataloader', type=int, default=0,
+@click.option('--n_jobs_dataloader', type=int, default=32,
               help='Number of workers for data loading. 0 means that the data will be loaded in the main process.')
 @click.option('--normal_class', type=int, default=0,
               help='Specify the normal class of the dataset (all other classes are considered anomalous).')
@@ -65,7 +65,6 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     :arg XP_PATH: Export path for logging the experiment. 
     :arg DATA_PATH: Root path of data.
     """
-    
 
     # Get configuration
     cfg = Config(locals().copy())
@@ -74,7 +73,8 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     if not os.path.exists(xp_path):
         os.mkdir(xp_path, mode=0o777)
     log_file = xp_path + '/log.txt'
@@ -128,12 +128,16 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     logger.info('Pretraining: %s' % pretrain)
     if pretrain:
         # Log pretraining details
-        logger.info('Pretraining optimizer: %s' % cfg.settings['ae_optimizer_name'])
+        logger.info('Pretraining optimizer: %s' %
+                    cfg.settings['ae_optimizer_name'])
         logger.info('Pretraining learning rate: %g' % cfg.settings['ae_lr'])
         logger.info('Pretraining epochs: %d' % cfg.settings['ae_n_epochs'])
-        logger.info('Pretraining learning rate scheduler milestones: %s' % (cfg.settings['ae_lr_milestone'],))
-        logger.info('Pretraining batch size: %d' % cfg.settings['ae_batch_size'])
-        logger.info('Pretraining weight decay: %g' % cfg.settings['ae_weight_decay'])
+        logger.info('Pretraining learning rate scheduler milestones: %s' %
+                    (cfg.settings['ae_lr_milestone'],))
+        logger.info('Pretraining batch size: %d' %
+                    cfg.settings['ae_batch_size'])
+        logger.info('Pretraining weight decay: %g' %
+                    cfg.settings['ae_weight_decay'])
 
         # Pretrain model on dataset (via autoencoder)
         deep_SVDD.pretrain(dataset,
@@ -150,7 +154,8 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     logger.info('Training optimizer: %s' % cfg.settings['optimizer_name'])
     logger.info('Training learning rate: %g' % cfg.settings['lr'])
     logger.info('Training epochs: %d' % cfg.settings['n_epochs'])
-    logger.info('Training learning rate scheduler milestones: %s' % (cfg.settings['lr_milestone'],))
+    logger.info('Training learning rate scheduler milestones: %s' %
+                (cfg.settings['lr_milestone'],))
     logger.info('Training batch size: %d' % cfg.settings['batch_size'])
     logger.info('Training weight decay: %g' % cfg.settings['weight_decay'])
 
@@ -174,27 +179,25 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     cfg.save_config(export_json=xp_path + '/config.json')
 
     # Plot most anomalous and most normal (within-class) test samples
-    indices, labels, scores = zip(*deep_SVDD.results['test_scores'])
-    indices, labels, scores = np.array(indices), np.array(labels), np.array(scores)
-    idx_sorted = indices[labels == 0][np.argsort(scores[labels == 0])]  # sorted from lowest to highest anomaly score
+    # indices, labels, scores = zip(*deep_SVDD.results['test_scores'])
+    # indices, labels, scores = np.array(indices), np.array(labels), np.array(scores)
+    # idx_sorted = indices[labels == 0][np.argsort(scores[labels == 0])]  # sorted from lowest to highest anomaly score
 
-    if dataset_name in ('mnist', 'cifar10'):
+    # if dataset_name in ('mnist', 'cifar10'):
 
-        if dataset_name == 'mnist':
-            X_normals = dataset.test_set.test_data[idx_sorted[:32], ...].unsqueeze(1)
-            X_outliers = dataset.test_set.test_data[idx_sorted[-32:], ...].unsqueeze(1)
+    #     if dataset_name == 'mnist':
+    #         X_normals = dataset.test_set.test_data[idx_sorted[:32], ...].unsqueeze(1)
+    #         X_outliers = dataset.test_set.test_data[idx_sorted[-32:], ...].unsqueeze(1)
 
-        if dataset_name == 'cifar10':
-            X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:32], ...], (0, 3, 1, 2)))
-            X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-32:], ...], (0, 3, 1, 2)))
-        # if dataset_name == 'mydata':
-        #     X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:3], ...], (0, 3, 1, 2)))
-        #     X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-3:], ...], (0, 3, 1, 2)))
+    #     if dataset_name == 'cifar10':
+    #         X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:32], ...], (0, 3, 1, 2)))
+    #         X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-32:], ...], (0, 3, 1, 2)))
+    #     # if dataset_name == 'mydata':
+    #     #     X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:3], ...], (0, 3, 1, 2)))
+    #     #     X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-3:], ...], (0, 3, 1, 2)))
 
-        plot_images_grid(X_normals, export_img=xp_path + '/normals', title='Most normal examples', padding=2)
-        plot_images_grid(X_outliers, export_img=xp_path + '/outliers', title='Most anomalous examples', padding=2)
-
-    
+    #     plot_images_grid(X_normals, export_img=xp_path + '/normals', title='Most normal examples', padding=2)
+    #     plot_images_grid(X_outliers, export_img=xp_path + '/outliers', title='Most anomalous examples', padding=2)
 
 
 if __name__ == '__main__':

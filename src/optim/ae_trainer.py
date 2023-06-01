@@ -8,7 +8,7 @@ import time
 import torch
 import torch.optim as optim
 import numpy as np
-
+import tqdm
 
 class AETrainer(BaseTrainer):
 
