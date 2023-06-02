@@ -132,7 +132,7 @@
             "args": [
                 "mydata",
                 "cifar10_LeNet",
-                "./log/mydata",
+                "./log/mydata_LeNet",
                 "./data",
                 "--load_model",
                 "./log/mydata/model.tar",
@@ -216,10 +216,10 @@
             "args": [
                 "mydata",
                 "mydata_LeNet",
-                "./log/mydata",
+                "./log/mydata_LeNet",
                 "./data",
                 "--load_model",
-                "./log/mydata/model.tar",
+                "./log/mydata_LeNet/model.tar",
                 "--objective",
                 "one-class",
                 "--lr",

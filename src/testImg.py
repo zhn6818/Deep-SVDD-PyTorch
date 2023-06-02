@@ -53,7 +53,7 @@ patchsize = 64
 @click.option('--ae_batch_size', type=int, default=128, help='Batch size for mini-batch autoencoder training.')
 @click.option('--ae_weight_decay', type=float, default=1e-6,
               help='Weight decay (L2 penalty) hyperparameter for autoencoder objective.')
-@click.option('--n_jobs_dataloader', type=int, default=0,
+@click.option('--n_jobs_dataloader', type=int, default=16,
               help='Number of workers for data loading. 0 means that the data will be loaded in the main process.')
 @click.option('--normal_class', type=int, default=0,
               help='Specify the normal class of the dataset (all other classes are considered anomalous).')
@@ -129,7 +129,7 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
         logger.info('Loading model from %s.' % load_model)
 
     
-    readimg_func("/data1/zhn/macdata/all_data/deepsvdd/moni-0001.png", deep_SVDD, device)
+    readimg_func("/data1/zhn/macdata/all_data/deepsvdd/moni-0003.png", deep_SVDD, device)
 
     filepath = '/data1/zhn/macdata/all_data/deepsvdd/highway/'
 
@@ -156,22 +156,25 @@ def testImg(img, deep_SVDD, device):
 
 def readimg_func(filename : str, deep_SVDD, device):
     
+    file_name = filename.split('/')[-1]
     
     img = cv2.imread(filename)
     halflength = (int)(patchsize / 2)
     
-    imgblack = np.zeros((img.shape[0], img.shape[1]), np.float64)
+    resize_size = 16
     
-    for i in range(img.shape[0]):
+    imgblack = np.zeros(((int)(img.shape[0] / resize_size), (int)(img.shape[1] / resize_size)), np.float64)
+    
+    for i in range(0, img.shape[0], resize_size):
         
         print("result: ", i)
-        for j in range(img.shape[1]):
+        for j in range(0, img.shape[1], resize_size):
             if i - halflength < 0 or j - halflength < 0 or i + halflength >= img.shape[0] or j + halflength >= img.shape[1]:
                 continue
             crop = img[i - halflength : i + halflength, j - halflength : j + halflength]
             score = testImg(crop, deep_SVDD, device)
-            imgblack[i, j] = score
-    cv2.imwrite("./img.png", imgblack)
+            imgblack[(int)(i / resize_size), (int)(j / resize_size)] = score
+    cv2.imwrite(file_name, imgblack)
     
     print("hello")
     
