@@ -136,23 +136,23 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     if dataset_name in ('mnist', 'cifar10', 'mydata'):
 
         if dataset_name == 'mnist':
-            X_normals = dataset.test_set.test_data[idx_sorted[:32], ...].unsqueeze(1)
-            X_outliers = dataset.test_set.test_data[idx_sorted[-32:], ...].unsqueeze(1)
+            X_normals = dataset.test_set.test_data[idx_sorted[:16], ...].unsqueeze(1)
+            X_outliers = dataset.test_set.test_data[idx_sorted[-16:], ...].unsqueeze(1)
 
         if dataset_name == 'cifar10':
-            X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:32], ...], (0, 3, 1, 2)))
-            X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-32:], ...], (0, 3, 1, 2)))
+            X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:16], ...], (0, 3, 1, 2)))
+            X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-16:], ...], (0, 3, 1, 2)))
         if dataset_name == 'mydata':
-            X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:8], ...], (0, 3, 1, 2)))
-            X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-8:], ...], (0, 3, 1, 2)))
+            X_normals = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[:16], ...], (0, 3, 1, 2)))
+            X_outliers = torch.tensor(np.transpose(dataset.test_set.data[idx_sorted[-16:], ...], (0, 3, 1, 2)))
 
-        plot_images_grid(X_normals, export_img=xp_path + '/normals', title='Most normal examples', nrow = 4, padding=2)
-        plot_images_grid(X_outliers, export_img=xp_path + '/outliers', title='Most anomalous examples', nrow = 4, padding=2)
+        plot_images_grid(X_normals, export_img=xp_path + '/normals', title='Most normal examples', nrow=4, padding=2)
+        plot_images_grid(X_outliers, export_img=xp_path + '/outliers', title='Most anomalous examples', nrow=4, padding=2)
 
     # Save results, model, and configuration
     deep_SVDD.save_results(export_json=xp_path + '/results.json')
-    deep_SVDD.save_model(export_model=xp_path + '/model.tar')
-    cfg.save_config(export_json=xp_path + '/config.json')
+    # deep_SVDD.save_model(export_model=xp_path + '/model.tar')
+    # cfg.save_config(export_json=xp_path + '/config.json')
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ from datasets.main import load_dataset
 @click.command()
 @click.argument('dataset_name', type=click.Choice(['mnist', 'cifar10', 'mydata']))
 @click.argument('net_name', type=click.Choice(['mnist_LeNet', 'cifar10_LeNet', 'cifar10_LeNet_ELU', 'mydata_LeNet', 'pa_LeNet']))
-@click.argument('xp_path', type=click.Path(exists=True))
+@click.argument('xp_path', type=click.Path())
 @click.argument('data_path', type=click.Path(exists=True))
 @click.option('--load_config', type=click.Path(exists=True), default=None,
               help='Config JSON-file path (default: None).')
@@ -26,7 +26,7 @@ from datasets.main import load_dataset
 @click.option('--objective', type=click.Choice(['one-class', 'soft-boundary']), default='one-class',
               help='Specify Deep SVDD objective ("one-class" or "soft-boundary").')
 @click.option('--nu', type=float, default=0.1, help='Deep SVDD hyperparameter nu (must be 0 < nu <= 1).')
-@click.option('--device', type=str, default='cuda', help='Computation device to use ("cpu", "cuda", "cuda:2", etc.).')
+@click.option('--device', type=str, default='mps', help='Computation device to use ("cpu", "cuda", "cuda:2", "mps", etc.).')
 @click.option('--seed', type=int, default=-1, help='Set seed. If -1, use randomization.')
 @click.option('--optimizer_name', type=click.Choice(['adam', 'amsgrad']), default='adam',
               help='Name of the optimizer to use for Deep SVDD network training.')
@@ -50,7 +50,7 @@ from datasets.main import load_dataset
 @click.option('--ae_batch_size', type=int, default=128, help='Batch size for mini-batch autoencoder training.')
 @click.option('--ae_weight_decay', type=float, default=1e-6,
               help='Weight decay (L2 penalty) hyperparameter for autoencoder objective.')
-@click.option('--n_jobs_dataloader', type=int, default=32,
+@click.option('--n_jobs_dataloader', type=int, default=8,
               help='Number of workers for data loading. 0 means that the data will be loaded in the main process.')
 @click.option('--normal_class', type=int, default=0,
               help='Specify the normal class of the dataset (all other classes are considered anomalous).')
@@ -66,24 +66,29 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     :arg DATA_PATH: Root path of data.
     """
 
-    # Get configuration
+    # 获取配置
     cfg = Config(locals().copy())
 
-    # Set up logging
+    # 设置基本日志
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+    # 确保日志目录存在
     if not os.path.exists(xp_path):
-        os.mkdir(xp_path, mode=0o777)
+        os.makedirs(xp_path, mode=0o777)
+        print(f'Created directory {xp_path}')
+
+    # 设置文件日志处理器
     log_file = xp_path + '/log.txt'
     file_handler = logging.FileHandler(log_file)
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
-    # Print arguments
+    # 打印参数
     logger.info('Log file is %s.' % log_file)
     logger.info('Data path is %s.' % data_path)
     logger.info('Export path is %s.' % xp_path)
@@ -108,9 +113,14 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
         torch.manual_seed(cfg.settings['seed'])
         logger.info('Set seed to %d.' % cfg.settings['seed'])
 
-    # Default device to 'cpu' if cuda is not available
-    if not torch.cuda.is_available():
+    # Check device availability
+    if device == 'cuda' and not torch.cuda.is_available():
         device = 'cpu'
+        logger.info('CUDA not available, using CPU instead.')
+    elif device == 'mps' and not torch.backends.mps.is_available():
+        device = 'cpu'
+        logger.info('MPS not available, using CPU instead.')
+    
     logger.info('Computation device: %s' % device)
     logger.info('Number of dataloader workers: %d' % n_jobs_dataloader)
 

@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Python: mnist",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/main.py",
             "args": [
@@ -46,7 +46,7 @@
         },
         {
             "name": "Python: cifar",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/main.py",
             "args": [
@@ -86,7 +86,7 @@
         },
         {
             "name": "Python: mydata",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/main.py",
             "args": [
@@ -99,11 +99,11 @@
                 "--lr",
                 "0.0001",
                 "--n_epochs",
-                "150",
+                "50",
                 "--lr_milestone",
                 "50",
                 "--batch_size",
-                "64",
+                "32",
                 "--weight_decay",
                 "0.5e-6",
                 "--pretrain",
@@ -111,11 +111,11 @@
                 "--ae_lr",
                 "0.0001",
                 "--ae_n_epochs",
-                "150",
+                "50",
                 "--ae_lr_milestone",
                 "250",
                 "--ae_batch_size",
-                "64",
+                "32",
                 "--ae_weight_decay",
                 "0.5e-6",
                 "--normal_class",
@@ -126,7 +126,7 @@
         },
         {
             "name": "Python: test",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/test.py",
             "args": [
@@ -168,49 +168,25 @@
         },
         {
             "name": "Python: test mydata",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/test.py",
             "args": [
                 "mydata",
                 "mydata_LeNet",
-                "./log/mydata",
+                "./log/mydata_LeNet",
                 "./data",
                 "--load_model",
-                "./log/mydata/model.tar",
+                "./log/mydata_LeNet/model.tar",
                 "--objective",
                 "one-class",
-                "--lr",
-                "0.0001",
-                "--n_epochs",
-                "150",
-                "--lr_milestone",
-                "50",
-                "--batch_size",
-                "200",
-                "--weight_decay",
-                "0.5e-6",
-                "--pretrain",
-                "True",
-                "--ae_lr",
-                "0.0001",
-                "--ae_n_epochs",
-                "350",
-                "--ae_lr_milestone",
-                "250",
-                "--ae_batch_size",
-                "200",
-                "--ae_weight_decay",
-                "0.5e-6",
-                "--normal_class",
-                "3"
             ],
             "console": "integratedTerminal",
             "justMyCode": true
         },
         {
             "name": "Python: testImg",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/testImg.py",
             "args": [
@@ -252,7 +228,7 @@
         },
         {
             "name": "Python: cropimg",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/cropimg.py",
             "args": [],
@@ -261,7 +237,7 @@
         },
         {
             "name": "Python: pa_mydata",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src/main.py",
             "args": [
