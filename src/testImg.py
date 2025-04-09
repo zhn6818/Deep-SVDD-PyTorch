@@ -5,6 +5,8 @@ import random
 import numpy as np
 import os
 import cv2
+from tqdm import tqdm
+from PIL import Image, ImageDraw, ImageFont
 
 from utils.config import Config
 from utils.visualization.plot_images_grid import plot_images_grid
@@ -12,7 +14,7 @@ from deepSVDD import DeepSVDD
 from datasets.main import load_dataset
 
 
-patchsize = 64
+patchsize = 512  # 修改为512，与mydata.py中的size一致
 
 ################################################################################
 # Settings
@@ -57,12 +59,17 @@ patchsize = 64
               help='Number of workers for data loading. 0 means that the data will be loaded in the main process.')
 @click.option('--normal_class', type=int, default=0,
               help='Specify the normal class of the dataset (all other classes are considered anomalous).')
+@click.option('--test_folder', type=click.Path(exists=True), default='/Volumes/data1/CV/abnormal/tanhuawu/data/test/normal',
+              help='Path to the folder containing test images.')
+@click.option('--output_folder', type=click.Path(), default=None,
+              help='Path to save the output images with scores.')
 
 
 
 def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, objective, nu, device, seed,
          optimizer_name, lr, n_epochs, lr_milestone, batch_size, weight_decay, pretrain, ae_optimizer_name, ae_lr,
-         ae_n_epochs, ae_lr_milestone, ae_batch_size, ae_weight_decay, n_jobs_dataloader, normal_class):
+         ae_n_epochs, ae_lr_milestone, ae_batch_size, ae_weight_decay, n_jobs_dataloader, normal_class,
+         test_folder, output_folder):
     """
     Deep SVDD, a fully deep method for anomaly detection.
 
@@ -71,6 +78,15 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
     :arg XP_PATH: Export path for logging the experiment. 
     :arg DATA_PATH: Root path of data.
     """
+
+    # 设置输出文件夹
+    if output_folder is None:
+        output_folder = os.path.join(xp_path, 'result_test')
+    
+    # 创建输出文件夹
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+        print(f"Created output directory: {output_folder}")
 
     # Get configuration
     cfg = Config(locals().copy())
@@ -128,56 +144,88 @@ def main(dataset_name, net_name, xp_path, data_path, load_config, load_model, ob
         deep_SVDD.load_model(model_path=load_model, load_ae=True)
         logger.info('Loading model from %s.' % load_model)
 
+    # 获取测试文件夹中的所有图像
+    image_extensions = ['.jpg', '.jpeg', '.png', '.bmp', '.tif', '.tiff']
+    image_files = []
     
-    readimg_func("/data1/zhn/macdata/all_data/deepsvdd/moni-0003.png", deep_SVDD, device)
-
-    filepath = '/data1/zhn/macdata/all_data/deepsvdd/highway/'
-
-    # for i in range(30):
-    #     imgpath = filepath + str(i + 1) + ".png"
-    #     img = cv2.imread(imgpath)
-    #     img = cv2.resize(img, (patchsize, patchsize), interpolation=cv2.INTER_CUBIC)
-    #     img = img.astype(np.float32) / 255.
-    #     img = img.transpose(2, 0, 1)
-    #     img = np.expand_dims(img, axis=0)
-    #     img = torch.tensor(img)
-    #     score = deep_SVDD.testimg(img, device=device)
-    #     print ('score', score.cpu().item())
-
-def testImg(img, deep_SVDD, device):
+    for root, _, files in os.walk(test_folder):
+        for file in files:
+            if any(file.lower().endswith(ext) for ext in image_extensions):
+                image_files.append(os.path.join(root, file))
     
-    img = cv2.resize(img, (patchsize, patchsize), interpolation=cv2.INTER_CUBIC)
-    img = img.astype(np.float32) / 255.
-    img = img.transpose(2, 0, 1)
-    img = np.expand_dims(img, axis=0)
-    img = torch.tensor(img)
-    score = deep_SVDD.testimg(img, device=device)
-    return score
-
-def readimg_func(filename : str, deep_SVDD, device):
+    logger.info(f'Found {len(image_files)} images in {test_folder}')
     
-    file_name = filename.split('/')[-1]
+    # 处理每张图像
+    results = []
     
-    img = cv2.imread(filename)
-    halflength = (int)(patchsize / 2)
-    
-    resize_size = 16
-    
-    imgblack = np.zeros(((int)(img.shape[0] / resize_size), (int)(img.shape[1] / resize_size)), np.float64)
-    
-    for i in range(0, img.shape[0], resize_size):
-        
-        print("result: ", i)
-        for j in range(0, img.shape[1], resize_size):
-            if i - halflength < 0 or j - halflength < 0 or i + halflength >= img.shape[0] or j + halflength >= img.shape[1]:
+    for img_path in tqdm(image_files, desc="Processing images"):
+        try:
+            # 读取图像
+            img = cv2.imread(img_path)
+            if img is None:
+                logger.warning(f"Could not read image: {img_path}")
                 continue
-            crop = img[i - halflength : i + halflength, j - halflength : j + halflength]
-            score = testImg(crop, deep_SVDD, device)
-            imgblack[(int)(i / resize_size), (int)(j / resize_size)] = score
-    cv2.imwrite(file_name, imgblack)
+                
+            # 调整图像大小
+            img_resized = cv2.resize(img, (patchsize, patchsize), interpolation=cv2.INTER_CUBIC)
+            
+            # 预处理图像
+            img_processed = img_resized.astype(np.float32) / 255.
+            img_processed = img_processed.transpose(2, 0, 1)  # HWC to CHW
+            img_processed = np.expand_dims(img_processed, axis=0)  # 添加批次维度
+            img_tensor = torch.tensor(img_processed)
+            
+            # 计算异常分数
+            score = deep_SVDD.testimg(img_tensor, device=device)
+            score_value = score.cpu().item()
+            results.append((img_path, score_value))
+            
+            # 在图像上绘制分数
+            img_pil = Image.fromarray(cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB))
+            draw = ImageDraw.Draw(img_pil)
+            
+            # 尝试加载字体，如果失败则使用默认字体
+            try:
+                font = ImageFont.truetype("Arial.ttf", 40)
+            except IOError:
+                font = ImageFont.load_default()
+            
+            # 绘制带有背景的文本以提高可读性
+            text = f"Score: {score_value:.6f}"
+            text_width, text_height = (200, 40)  # 估计的文本大小
+            
+            # 绘制文本背景
+            draw.rectangle(
+                [(10, 10), (10 + text_width + 10, 10 + text_height + 10)],
+                fill=(0, 0, 0, 128)
+            )
+            
+            # 绘制文本
+            draw.text((15, 15), text, fill=(255, 255, 255), font=font)
+            
+            # 保存图像
+            filename = os.path.basename(img_path)
+            output_path = os.path.join(output_folder, f"score_{score_value:.6f}_{filename}")
+            img_pil.save(output_path)
+            
+            logger.info(f"Image: {img_path}, Score: {score_value:.6f}")
+            
+        except Exception as e:
+            logger.error(f"Error processing {img_path}: {str(e)}")
     
-    print("hello")
+    # 保存结果到CSV文件
+    results.sort(key=lambda x: x[1])  # 按分数排序
     
+    with open(os.path.join(output_folder, 'scores.csv'), 'w') as f:
+        f.write("Image,Score\n")
+        for img_path, score in results:
+            f.write(f"{img_path},{score}\n")
+    
+    logger.info(f"Processing complete. Results saved to {output_folder}")
+    if results:
+        scores = [score for _, score in results]
+        logger.info(f"Min score: {min(scores):.6f}, Max score: {max(scores):.6f}, Mean: {np.mean(scores):.6f}")
+
 
 if __name__ == '__main__':
     main()
